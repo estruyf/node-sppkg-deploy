@@ -159,7 +159,7 @@ class DeployAppPkg {
      */
     private async _getWebAndListId(siteUrl: string, headers: any): Promise<IWebAndList> {
         return new Promise<IWebAndList>((resolve, reject) => {
-            const apiUrl = `${siteUrl}/_api/web/getList('/sites/catalog/appcatalog')?$select=Id,ParentWeb/Id&$expand=ParentWeb`;
+            const apiUrl = `${siteUrl}/_api/web/getList('/${this._internalOptions.site}/appcatalog')?$select=Id,ParentWeb/Id&$expand=ParentWeb`;
             return this._getRequest(apiUrl, headers).then(result => {
                 if (result.Id && result.ParentWeb.Id) {
                     if (this._internalOptions.verbose) {
