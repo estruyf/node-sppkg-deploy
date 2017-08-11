@@ -20,5 +20,17 @@
   },
   "devDependencies": {
     "typescript": "2.4.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/estruyf/node-sppkg-deploy"
+  },
+  "bugs": {
+    "url": "https://github.com/estruyf/node-sppkg-deploy/issues"
+  },
+  "homepage": "https://github.com/estruyf/node-sppkg-deploy",
+  "maintainers": [{
+    "name": "Elio Struyf",
+    "email": "info@estruyf.be"
+  }]
 }
