@@ -1,0 +1,24 @@
+{
+  "name": "node-sppkg-deploy",
+  "version": "1.0.0",
+  "description": "This gulp plugin allows you to deploy SharePoint packages in the AppCatalog.",
+  "main": "dist/index.js",
+  "scripts": {
+    "tsc": "tsc"
+  },
+  "keywords": [
+    "SharePoint",
+    "SharePoint",
+    "Framework",
+    "SPFx",
+    "Gulp"
+  ],
+  "author": "Elio Struyf",
+  "license": "MIT",
+  "dependencies": {
+    "node-sp-auth": "2.1.1"
+  },
+  "devDependencies": {
+    "typescript": "2.4.2"
+  }
+}

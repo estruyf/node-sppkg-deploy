@@ -1,0 +1,14 @@
+# Folders
+.vscode
+src
+test
+assets
+
+
+# Files
+*.log
+*.tgz
+.npmignore
+.gitignore
+tsconfig.json
+yarn.lock
