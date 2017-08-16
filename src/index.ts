@@ -12,6 +12,7 @@ class DeployAppPkg {
         this._internalOptions.password = options.password || "";
         this._internalOptions.tenant = options.tenant || "";
         this._internalOptions.site = options.site || "";
+        this._internalOptions.hostname = options.hostname || "";
         this._internalOptions.filename = options.filename || "";
         this._internalOptions.skipFeatureDeployment = options.skipFeatureDeployment || true;
         this._internalOptions.verbose = options.verbose || false;
@@ -24,8 +25,8 @@ class DeployAppPkg {
             throw "Password argument is required";
         }
 
-        if (this._internalOptions.tenant === "") {
-            throw "Tenant argument is required";
+        if (this._internalOptions.tenant === "" && this._internalOptions.hostname === "") {
+            throw "Tenant OR hostname argument is required";
         }
 
         if (this._internalOptions.site === "") {
@@ -42,7 +43,7 @@ class DeployAppPkg {
             (async () => {
                 try {
                     // Create the site URL
-                    const siteUrl = `https://${this._internalOptions.tenant}.sharepoint.com/${this._internalOptions.site}`;
+                    const siteUrl = this._internalOptions.hostname ? `${this._internalOptions.hostname}/${this._internalOptions.site}` : `https://${this._internalOptions.tenant}.sharepoint.com/${this._internalOptions.site}`;
                     const credentials = {
                         username: this._internalOptions.username,
                         password: this._internalOptions.password

@@ -47,12 +47,23 @@ Default: `""`
 
 Sets the password to be used for the deployment.
 
-### tenant (required)
+### tenant (optional)
 
 Type: `String`
 Default: `""`
 
-Sets the tenant name to be used for the deployment.
+Sets the tenant name to be used for the deployment. Example: https://`<tenant>`.sharepoint.com
+
+> Important: You have to specify this property or the **hostname** property
+
+### hostname (optional)
+
+Type: `String`
+Default: `""`
+
+Sets the hostname of your environment to be used for the deployment. This allows you to specify not only the tenant part, but the complete hostname including the protocol: `https://tenant.sharepoint.com`.
+
+> Important: You have to specify this property or the **tenant** property
 
 ### site (required)
 
