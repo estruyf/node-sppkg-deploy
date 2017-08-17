@@ -27,6 +27,17 @@ sppkgDeploy.deploy({
     skipFeatureDeployment: true, // Do you want to skip the feature deployment (SharePoint Framework)
     verbose: true // Do you want to show logging during the deployment
 });
+
+// OR
+
+sppkgDeploy.deploy({
+    username: "username", // The user that will deploy the file
+    password: "password", // The password of the user
+    tenant: "tenant", // The tenant name. Example: contoso
+    absoluteUrl: "https://tenant.sharepoint.com/sites/catalog", // Absolute path to the app catalog site
+    skipFeatureDeployment: true, // Do you want to skip the feature deployment (SharePoint Framework)
+    verbose: true // Do you want to show logging during the deployment
+});
 ```
 
 ## Arguments / options
@@ -54,23 +65,25 @@ Default: `""`
 
 Sets the tenant name to be used for the deployment. Example: https://`<tenant>`.sharepoint.com
 
-> Important: You have to specify this property or the **hostname** property
+> Important: You have to specify this property or the **absoluteUrl** property
 
-### hostname (optional)
-
-Type: `String`
-Default: `""`
-
-Sets the hostname of your environment to be used for the deployment. This allows you to specify not only the tenant part, but the complete hostname including the protocol: `https://tenant.sharepoint.com`.
-
-> Important: You have to specify this property or the **tenant** property
-
-### site (required)
+### site (optional)
 
 Type: `String`
 Default: `""`
 
 Specify the relative path to the app catalog site. Example: "sites/catalog"
+
+> Important: You have to specify this property or the **absoluteUrl** property
+
+### absoluteUrl (optional)
+
+Type: `String`
+Default: `""`
+
+Sets the absoluteUrl to the app catalog site that needs to be used for the deployment. Example: `https://tenant.sharepoint.com/sites/catalog`.
+
+> Important: You have to specify this property or the combination **tenant** and **site** property.
 
 ### filename (required)
 

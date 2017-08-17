@@ -2,6 +2,7 @@ import { IOptions, IWebAndList, IFileInfo } from './utils/IDeployAppPkg';
 import * as spauth from 'node-sp-auth';
 import * as request from 'request';
 import * as fs from 'fs';
+import * as url from 'url';
 import uuid4 from './helper/uuid4';
 
 class DeployAppPkg {
@@ -12,10 +13,10 @@ class DeployAppPkg {
         this._internalOptions.password = options.password || "";
         this._internalOptions.tenant = options.tenant || "";
         this._internalOptions.site = options.site || "";
-        this._internalOptions.hostname = options.hostname || "";
+        this._internalOptions.absoluteUrl = options.absoluteUrl || "";
         this._internalOptions.filename = options.filename || "";
-        this._internalOptions.skipFeatureDeployment = options.skipFeatureDeployment || true;
-        this._internalOptions.verbose = options.verbose || false;
+        this._internalOptions.skipFeatureDeployment = typeof options.skipFeatureDeployment !== "undefined" ? options.skipFeatureDeployment : true;
+        this._internalOptions.verbose = typeof options.verbose !== "undefined" ? options.verbose : true;
 
         if (this._internalOptions.username === "") {
             throw "Username argument is required";
@@ -25,12 +26,14 @@ class DeployAppPkg {
             throw "Password argument is required";
         }
 
-        if (this._internalOptions.tenant === "" && this._internalOptions.hostname === "") {
-            throw "Tenant OR hostname argument is required";
+        if (this._internalOptions.tenant === "" &&
+            this._internalOptions.absoluteUrl === "") {
+            throw "Tenant OR absoluteUrl argument is required";
         }
 
-        if (this._internalOptions.site === "") {
-            throw "Site argument is required";
+        if (this._internalOptions.site === "" &&
+            this._internalOptions.absoluteUrl === "") {
+            throw "Site OR absoluteUrl argument is required";
         }
 
         if (this._internalOptions.filename === "") {
@@ -43,7 +46,9 @@ class DeployAppPkg {
             (async () => {
                 try {
                     // Create the site URL
-                    const siteUrl = this._internalOptions.hostname ? `${this._internalOptions.hostname}/${this._internalOptions.site}` : `https://${this._internalOptions.tenant}.sharepoint.com/${this._internalOptions.site}`;
+                    const siteUrl = this._internalOptions.absoluteUrl ? this._internalOptions.absoluteUrl : `https://${this._internalOptions.tenant}.sharepoint.com/${this._internalOptions.site}`;
+
+                    // Specify the site credentials
                     const credentials = {
                         username: this._internalOptions.username,
                         password: this._internalOptions.password
@@ -160,7 +165,10 @@ class DeployAppPkg {
      */
     private async _getWebAndListId(siteUrl: string, headers: any): Promise<IWebAndList> {
         return new Promise<IWebAndList>((resolve, reject) => {
-            const apiUrl = `${siteUrl}/_api/web/getList('/${this._internalOptions.site}/appcatalog')?$select=Id,ParentWeb/Id&$expand=ParentWeb`;
+            // Retrieve the relative site URL
+            const relativeUrl: string = this._internalOptions.site === "" ? this._retrieveRelativeSiteUrl(siteUrl) : `/${this._internalOptions.site}`;
+            // Create the API URL to call
+            const apiUrl = `${siteUrl}/_api/web/getList('${relativeUrl}/appcatalog')?$select=Id,ParentWeb/Id&$expand=ParentWeb`;
             return this._getRequest(apiUrl, headers).then(result => {
                 if (result.Id && result.ParentWeb.Id) {
                     if (this._internalOptions.verbose) {
@@ -300,6 +308,15 @@ class DeployAppPkg {
                 }
             });
         });
+    }
+
+    /**
+     * Retrieve the relative site path
+     * @param siteUrl Absolute URL of the site
+     */
+    private _retrieveRelativeSiteUrl(siteUrl: string): string {
+        const parsedUrl = url.parse(siteUrl);
+        return parsedUrl.path;
     }
 }
 

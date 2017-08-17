@@ -3,7 +3,7 @@ export interface IOptions {
     password?: string;
     tenant?: string;
     site?: string;
-    hostname?: string;
+    absoluteUrl?: string;
     filename?: string;
     skipFeatureDeployment?: boolean;
     verbose?: boolean;
