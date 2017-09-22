@@ -91,9 +91,7 @@ class DeployAppPkg {
                     // Return the promise
                     resolve();
                 } catch (e) {
-                    if (this._internalOptions.verbose) {
-                        console.log('ERROR:', e);
-                    }
+                    console.log('ERROR:', e);
                     reject(e);
                 }
             })();
@@ -143,7 +141,7 @@ class DeployAppPkg {
         return new Promise<string>((resolve, reject) => {
             const apiUrl = `${siteUrl}/_api/site?$select=Id`;
             return this._getRequest(apiUrl, headers).then(result => {
-                if (result.Id) {
+                if (typeof result.Id !== "undefined" && result.id !== null) {
                     if (this._internalOptions.verbose) {
                         console.log(`INFO: Site ID - ${result.Id}`);
                     }
@@ -170,7 +168,9 @@ class DeployAppPkg {
             // Create the API URL to call
             const apiUrl = `${siteUrl}/_api/web/getList('${relativeUrl}/appcatalog')?$select=Id,ParentWeb/Id&$expand=ParentWeb`;
             return this._getRequest(apiUrl, headers).then(result => {
-                if (result.Id && result.ParentWeb.Id) {
+                if (typeof result.Id !== "undefined" && result.id !== null &&
+                    typeof result.ParentWeb !== "undefined" && result.ParentWeb !== null &&
+                    typeof result.ParentWeb.Id !== "undefined" && result.ParentWeb.Id !== null) {
                     if (this._internalOptions.verbose) {
                         console.log(`INFO: Web ID - ${result.ParentWeb.Id} / List ID - ${result.Id}`);
                     }
@@ -197,7 +197,9 @@ class DeployAppPkg {
         return new Promise<IFileInfo>((resolve, reject) => {
             const apiUrl = `${siteUrl}/_api/web/GetFolderByServerRelativeUrl('AppCatalog')/Files('${this._internalOptions.filename}')?$expand=ListItemAllFields&$select=ListItemAllFields/Id,ListItemAllFields/owshiddenversion`;
             return this._getRequest(apiUrl, headers).then(result => {
-                if (result.ListItemAllFields.Id && result.ListItemAllFields.owshiddenversion) {
+                if (typeof result.ListItemAllFields !== "undefined" && result.ListItemAllFields !== null &&
+                    typeof result.ListItemAllFields.Id !== "undefined" && result.ListItemAllFields.Id !== null &&
+                    typeof result.ListItemAllFields.owshiddenversion !== "undefined" && result.ListItemAllFields.owshiddenversion !== null) {
                     if (this._internalOptions.verbose) {
                         console.log(`INFO: List item ID - ${result.ListItemAllFields.Id} / version - ${result.ListItemAllFields.owshiddenversion}`);
                     }
@@ -321,5 +323,9 @@ class DeployAppPkg {
 }
 
 export const deploy = async (options: IOptions) => {
-    return await new DeployAppPkg(options).start();
+    try {
+        return await new DeployAppPkg(options).start();
+    } catch (e) {
+        // Nothing to do here, already logged
+    }
 };
