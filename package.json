@@ -5,8 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "tsc": "tsc",
-    "test": "tsc && tsc ./test/index.ts --sourceMap true --lib es2017 && node ./test/index.js",
-    "prepublishOnly": "tsc"
+    "test": "tsc && tsc ./test/index.ts --sourceMap true --lib es2017 && node ./test/index.js"
   },
   "keywords": [
     "SharePoint",

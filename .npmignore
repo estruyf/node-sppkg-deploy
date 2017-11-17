@@ -3,6 +3,8 @@
 src
 test
 assets
+.circleci
+scripts
 
 
 # Files
