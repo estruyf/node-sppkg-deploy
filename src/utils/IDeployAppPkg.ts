@@ -6,6 +6,7 @@ export interface IOptions {
     absoluteUrl?: string;
     filename?: string;
     skipFeatureDeployment?: boolean;
+    sp2016?: boolean;
     verbose?: boolean;
 }
 

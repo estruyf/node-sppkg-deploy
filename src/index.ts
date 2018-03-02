@@ -15,8 +15,10 @@ class DeployAppPkg {
         this._internalOptions.site = options.site || "";
         this._internalOptions.absoluteUrl = options.absoluteUrl || "";
         this._internalOptions.filename = options.filename || "";
+        this._internalOptions.sp2016 = options.sp2016 || false;
         this._internalOptions.skipFeatureDeployment = typeof options.skipFeatureDeployment !== "undefined" ? options.skipFeatureDeployment : true;
         this._internalOptions.verbose = typeof options.verbose !== "undefined" ? options.verbose : true;
+
 
         if (this._internalOptions.username === "") {
             throw "Username argument is required";
@@ -78,7 +80,12 @@ class DeployAppPkg {
                     const fileInfo = await this._getFileInfo(siteUrl, headers);
 
                     // Retrieve the request-body.xml file
-                    let xmlReqBody = fs.readFileSync(__dirname + '/../request-body.xml', 'utf8');
+                    let xmlReqBody;
+                    if(this._internalOptions.sp2016) {
+                        xmlReqBody = fs.readFileSync(__dirname + '/../request-body-SP2016.xml', 'utf8');
+                    } else {
+                        xmlReqBody = fs.readFileSync(__dirname + '/../request-body.xml', 'utf8');
+                    }
                     // Map all the required values to the XML body
                     xmlReqBody = this._setXMLMapping(xmlReqBody, siteId, webId, listId, fileInfo, this._internalOptions.skipFeatureDeployment);
                     // Post the request body to the processQuery endpoint

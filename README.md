@@ -38,6 +38,16 @@ sppkgDeploy.deploy({
     skipFeatureDeployment: true, // Do you want to skip the feature deployment (SharePoint Framework)
     verbose: true // Do you want to show logging during the deployment
 });
+
+// OR
+
+sppkgDeploy.deploy({
+    username: "username", // The user that will deploy the file
+    password: "password", // The password of the user
+    absoluteUrl: "https://sharepoint.contoso.com/sites/catalog", // Absolute path to the app catalog site
+    sp2016: true // SharePoint 2016 On-Prem
+    verbose: true // Do you want to show logging during the deployment
+});
 ```
 
 ## Arguments / options
@@ -100,6 +110,13 @@ Default: `true`
 Specify if you want to skip feature deployment. When set to true, your customizations will be tenant-scoped.
 
 > More information about the **skipFeatureDeployment** option can be found here: [Tenant-Scoped solution deployment for SharePoint Framework solutions](https://dev.office.com/sharepoint/docs/spfx/tenant-scoped-deployment).
+
+### sp2016 (optional)
+
+Type: `Boolean`
+Default: `false`
+
+Specify if this is SP2016 on-prem.
 
 ### filename (optional)
 
