@@ -57,39 +57,38 @@ class DeployAppPkg {
                     };
 
                     // Authenticate against SharePoint
-                    const options = await spauth.getAuth(siteUrl, credentials);
-                    // Perform request with any http-enabled library
-                    let headers = options.headers;
+                    const authData = await spauth.getAuth(siteUrl, credentials);
+
                     // Append the accept and content-type to the header
-                    headers["Accept"] = "application/json";
-                    headers["Content-type"] = "application/json";
+                    authData.headers["Accept"] = "application/json";
+                    authData.headers["Content-type"] = "application/json";
 
                     // Get the site and web ID
-                    const digestValue = await this._getDigestValue(siteUrl, headers);
+                    const digestValue = await this._getDigestValue(siteUrl, authData);
                     // Add the digest value to the header
-                    headers["X-RequestDigest"] = digestValue;
+                    authData.headers["X-RequestDigest"] = digestValue;
 
                     // Retrieve the site ID
-                    const siteId = await this._getSiteId(siteUrl, headers);
+                    const siteId = await this._getSiteId(siteUrl, authData);
                     // Retrieve the web ID
-                    const webAndListInfo = await this._getWebAndListId(siteUrl, headers);
+                    const webAndListInfo = await this._getWebAndListId(siteUrl, authData);
                     const webId = webAndListInfo.webId;
                     const listId = webAndListInfo.listId;
 
                     // Get the file information
-                    const fileInfo = await this._getFileInfo(siteUrl, headers);
+                    const fileInfo = await this._getFileInfo(siteUrl, authData);
 
                     // Retrieve the request-body.xml file
-                    let xmlReqBody;
+                    let xmlReqBody = fs.readFileSync(__dirname + '/../request-body.xml', 'utf8');
+                    
                     if(this._internalOptions.sp2016) {
                         xmlReqBody = fs.readFileSync(__dirname + '/../request-body-SP2016.xml', 'utf8');
-                    } else {
-                        xmlReqBody = fs.readFileSync(__dirname + '/../request-body.xml', 'utf8');
                     }
+
                     // Map all the required values to the XML body
                     xmlReqBody = this._setXMLMapping(xmlReqBody, siteId, webId, listId, fileInfo, this._internalOptions.skipFeatureDeployment);
                     // Post the request body to the processQuery endpoint
-                    await this._deployAppPkg(siteUrl, headers, xmlReqBody);
+                    await this._deployAppPkg(siteUrl, authData, xmlReqBody, this._internalOptions.sp2016);
 
                     if (this._internalOptions.verbose) {
                         console.log('INFO: COMPLETED');
@@ -110,10 +109,15 @@ class DeployAppPkg {
      * @param siteUrl The current site URL to call
      * @param headers The request headers
      */
-    private async _getDigestValue(siteUrl: string, headers: any) {
+    private async _getDigestValue(siteUrl: string, authData: any) {
         return new Promise((resolve, reject) => {
             const apiUrl = `${siteUrl}/_api/contextinfo?$select=FormDigestValue`;
-            request.post(apiUrl, { headers: headers }, (err, resp, body) => {
+
+            let requestOpts = authData.options;
+            requestOpts.headers = authData.headers;
+            requestOpts.url = apiUrl;
+            requestOpts.json = true;
+            request.post(requestOpts, (err, resp, body) => {
                 if (err) {
                     if (this._internalOptions.verbose) {
                         console.log('ERROR:', err);
@@ -122,13 +126,11 @@ class DeployAppPkg {
                     return;
                 }
 
-                // Parse the text to JSON
-                const result = JSON.parse(body);
-                if (result.FormDigestValue) {
+                if (body.FormDigestValue) {
                     if (this._internalOptions.verbose) {
                         console.log('INFO: FormDigestValue retrieved');
                     }
-                    resolve(result.FormDigestValue);
+                    resolve(body.FormDigestValue);
                 } else {
                     if (this._internalOptions.verbose) {
                         console.log('ERROR:', body);
@@ -142,12 +144,13 @@ class DeployAppPkg {
     /**
      * Retrieve the site ID for the current URL
      * @param siteUrl The current site URL to call
-     * @param headers The request headers
+     * @param authData The request authData
      */
-    private async _getSiteId(siteUrl: string, headers: any) {
+    private async _getSiteId(siteUrl: string, authData: any) {
         return new Promise<string>((resolve, reject) => {
             const apiUrl = `${siteUrl}/_api/site?$select=Id`;
-            return this._getRequest(apiUrl, headers).then(result => {
+
+            return this._getRequest(apiUrl, authData).then(result => {
                 if (typeof result.Id !== "undefined" && result.id !== null) {
                     if (this._internalOptions.verbose) {
                         console.log(`INFO: Site ID - ${result.Id}`);
@@ -166,15 +169,16 @@ class DeployAppPkg {
     /**
      * Retrieve the web ID for the current URL
      * @param siteUrl The current site URL to call
-     * @param headers The request headers
+     * @param authData The request authData
      */
-    private async _getWebAndListId(siteUrl: string, headers: any): Promise<IWebAndList> {
+    private async _getWebAndListId(siteUrl: string, authData: any): Promise<IWebAndList> {
         return new Promise<IWebAndList>((resolve, reject) => {
             // Retrieve the relative site URL
             const relativeUrl: string = this._internalOptions.site === "" ? this._retrieveRelativeSiteUrl(siteUrl) : `/${this._internalOptions.site}`;
             // Create the API URL to call
             const apiUrl = `${siteUrl}/_api/web/getList('${relativeUrl}/appcatalog')?$select=Id,ParentWeb/Id&$expand=ParentWeb`;
-            return this._getRequest(apiUrl, headers).then(result => {
+
+            return this._getRequest(apiUrl, authData).then(result => {
                 if (typeof result.Id !== "undefined" && result.id !== null &&
                     typeof result.ParentWeb !== "undefined" && result.ParentWeb !== null &&
                     typeof result.ParentWeb.Id !== "undefined" && result.ParentWeb.Id !== null) {
@@ -198,7 +202,7 @@ class DeployAppPkg {
     /**
      * Retrieve the file hidden version number and ID
      * @param siteUrl The current site URL to call
-     * @param headers The request headers
+     * @param authData The request authData
      */
     private async _getFileInfo(siteUrl: string, headers: any): Promise<IFileInfo> {
         return new Promise<IFileInfo>((resolve, reject) => {
@@ -227,11 +231,17 @@ class DeployAppPkg {
     /**
      * Retrieve the file hidden version number and ID
      * @param siteUrl The current site URL to call
-     * @param headers The request headers
+     * @param authData The request authData
      */
-    private async _getRequest(apiUrl: string, headers: any): Promise<any> {
+    private async _getRequest(apiUrl: string, authData: any): Promise<any> {
         return new Promise((resolve, reject) => {
-            request(apiUrl, { headers: headers }, (err, resp, body) => {
+            
+            let requestOpts = authData.options;
+            requestOpts.headers = authData.headers;
+            requestOpts.url = apiUrl;
+            requestOpts.json = true;
+
+            request(requestOpts, (err, resp, body) => {
                 if (err) {
                     if (this._internalOptions.verbose) {
                         console.log('ERROR:', err);
@@ -241,7 +251,7 @@ class DeployAppPkg {
                 }
 
                 // Parse the text to JSON
-                resolve(JSON.parse(body));
+                resolve(body);
             });
         });
     }
@@ -283,17 +293,20 @@ class DeployAppPkg {
     /**
      * Deploy the app package file
      * @param siteUrl The URL of the app catalog site
-     * @param headers Request headers
+     * @param authData Request authData
      */
-    private async _deployAppPkg(siteUrl: string, headers: any, xmlReqBody: string) {
+    private async _deployAppPkg(siteUrl: string, authData: any, xmlReqBody: string, sp2016: boolean) {
         return new Promise((resolve, reject) => {
             const apiUrl = `${siteUrl}/_vti_bin/client.svc/ProcessQuery`;
-            headers["Content-type"] = "application/xml";
+            authData.headers["Content-type"] = "application/xml";
 
-            request.post(apiUrl, {
-                headers: headers,
-                body: xmlReqBody
-            }, (err, resp, body) => {
+            let requestOpts = authData.options;
+            requestOpts.headers = authData.headers;
+            requestOpts.url = apiUrl;
+            requestOpts.json = true;
+            requestOpts.body = xmlReqBody;
+
+            request.post(requestOpts, (err, resp, body) => {
                 if (err) {
                     if (this._internalOptions.verbose) {
                         console.log('ERROR:', err);
@@ -303,8 +316,12 @@ class DeployAppPkg {
                 }
 
                 // Check if the current version of the app package is deployed
-                const result = JSON.parse(body);
-                if (result && result[2].IsClientSideSolutionCurrentVersionDeployed) {
+                if (sp2016 && body && body[2].IsClientSideSolutionDeployed) {
+                    if (this._internalOptions.verbose) {
+                        console.log('INFO: App package has been deployed to SP2016');
+                    }
+                    resolve(true);
+                } else if (!sp2016 && body && body[2].IsClientSideSolutionCurrentVersionDeployed) {
                     if (this._internalOptions.verbose) {
                         console.log('INFO: App package has been deployed');
                     }

@@ -77,7 +77,7 @@ var DeployAppPkg = (function () {
             return __generator(this, function (_a) {
                 return [2, new Promise(function (resolve, reject) {
                         (function () { return __awaiter(_this, void 0, void 0, function () {
-                            var siteUrl, credentials, options, headers, digestValue, siteId, webAndListInfo, webId, listId, fileInfo, xmlReqBody, e_1;
+                            var siteUrl, credentials, authData, digestValue, siteId, webAndListInfo, webId, listId, fileInfo, xmlReqBody, e_1;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0:
@@ -89,34 +89,30 @@ var DeployAppPkg = (function () {
                                         };
                                         return [4, spauth.getAuth(siteUrl, credentials)];
                                     case 1:
-                                        options = _a.sent();
-                                        headers = options.headers;
-                                        headers["Accept"] = "application/json";
-                                        headers["Content-type"] = "application/json";
-                                        return [4, this._getDigestValue(siteUrl, headers)];
+                                        authData = _a.sent();
+                                        authData.headers["Accept"] = "application/json";
+                                        authData.headers["Content-type"] = "application/json";
+                                        return [4, this._getDigestValue(siteUrl, authData)];
                                     case 2:
                                         digestValue = _a.sent();
-                                        headers["X-RequestDigest"] = digestValue;
-                                        return [4, this._getSiteId(siteUrl, headers)];
+                                        authData.headers["X-RequestDigest"] = digestValue;
+                                        return [4, this._getSiteId(siteUrl, authData)];
                                     case 3:
                                         siteId = _a.sent();
-                                        return [4, this._getWebAndListId(siteUrl, headers)];
+                                        return [4, this._getWebAndListId(siteUrl, authData)];
                                     case 4:
                                         webAndListInfo = _a.sent();
                                         webId = webAndListInfo.webId;
                                         listId = webAndListInfo.listId;
-                                        return [4, this._getFileInfo(siteUrl, headers)];
+                                        return [4, this._getFileInfo(siteUrl, authData)];
                                     case 5:
                                         fileInfo = _a.sent();
-                                        xmlReqBody = void 0;
+                                        xmlReqBody = fs.readFileSync(__dirname + '/../request-body.xml', 'utf8');
                                         if (this._internalOptions.sp2016) {
                                             xmlReqBody = fs.readFileSync(__dirname + '/../request-body-SP2016.xml', 'utf8');
                                         }
-                                        else {
-                                            xmlReqBody = fs.readFileSync(__dirname + '/../request-body.xml', 'utf8');
-                                        }
                                         xmlReqBody = this._setXMLMapping(xmlReqBody, siteId, webId, listId, fileInfo, this._internalOptions.skipFeatureDeployment);
-                                        return [4, this._deployAppPkg(siteUrl, headers, xmlReqBody)];
+                                        return [4, this._deployAppPkg(siteUrl, authData, xmlReqBody, this._internalOptions.sp2016)];
                                     case 6:
                                         _a.sent();
                                         if (this._internalOptions.verbose) {
@@ -137,13 +133,17 @@ var DeployAppPkg = (function () {
             });
         });
     };
-    DeployAppPkg.prototype._getDigestValue = function (siteUrl, headers) {
+    DeployAppPkg.prototype._getDigestValue = function (siteUrl, authData) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
                 return [2, new Promise(function (resolve, reject) {
                         var apiUrl = siteUrl + "/_api/contextinfo?$select=FormDigestValue";
-                        request.post(apiUrl, { headers: headers }, function (err, resp, body) {
+                        var requestOpts = authData.options;
+                        requestOpts.headers = authData.headers;
+                        requestOpts.url = apiUrl;
+                        requestOpts.json = true;
+                        request.post(requestOpts, function (err, resp, body) {
                             if (err) {
                                 if (_this._internalOptions.verbose) {
                                     console.log('ERROR:', err);
@@ -151,12 +151,11 @@ var DeployAppPkg = (function () {
                                 reject('Failed to retrieve the site and web ID');
                                 return;
                             }
-                            var result = JSON.parse(body);
-                            if (result.FormDigestValue) {
+                            if (body.FormDigestValue) {
                                 if (_this._internalOptions.verbose) {
                                     console.log('INFO: FormDigestValue retrieved');
                                 }
-                                resolve(result.FormDigestValue);
+                                resolve(body.FormDigestValue);
                             }
                             else {
                                 if (_this._internalOptions.verbose) {
@@ -169,13 +168,13 @@ var DeployAppPkg = (function () {
             });
         });
     };
-    DeployAppPkg.prototype._getSiteId = function (siteUrl, headers) {
+    DeployAppPkg.prototype._getSiteId = function (siteUrl, authData) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
                 return [2, new Promise(function (resolve, reject) {
                         var apiUrl = siteUrl + "/_api/site?$select=Id";
-                        return _this._getRequest(apiUrl, headers).then(function (result) {
+                        return _this._getRequest(apiUrl, authData).then(function (result) {
                             if (typeof result.Id !== "undefined" && result.id !== null) {
                                 if (_this._internalOptions.verbose) {
                                     console.log("INFO: Site ID - " + result.Id);
@@ -193,14 +192,14 @@ var DeployAppPkg = (function () {
             });
         });
     };
-    DeployAppPkg.prototype._getWebAndListId = function (siteUrl, headers) {
+    DeployAppPkg.prototype._getWebAndListId = function (siteUrl, authData) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
                 return [2, new Promise(function (resolve, reject) {
                         var relativeUrl = _this._internalOptions.site === "" ? _this._retrieveRelativeSiteUrl(siteUrl) : "/" + _this._internalOptions.site;
                         var apiUrl = siteUrl + "/_api/web/getList('" + relativeUrl + "/appcatalog')?$select=Id,ParentWeb/Id&$expand=ParentWeb";
-                        return _this._getRequest(apiUrl, headers).then(function (result) {
+                        return _this._getRequest(apiUrl, authData).then(function (result) {
                             if (typeof result.Id !== "undefined" && result.id !== null &&
                                 typeof result.ParentWeb !== "undefined" && result.ParentWeb !== null &&
                                 typeof result.ParentWeb.Id !== "undefined" && result.ParentWeb.Id !== null) {
@@ -252,12 +251,16 @@ var DeployAppPkg = (function () {
             });
         });
     };
-    DeployAppPkg.prototype._getRequest = function (apiUrl, headers) {
+    DeployAppPkg.prototype._getRequest = function (apiUrl, authData) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
                 return [2, new Promise(function (resolve, reject) {
-                        request(apiUrl, { headers: headers }, function (err, resp, body) {
+                        var requestOpts = authData.options;
+                        requestOpts.headers = authData.headers;
+                        requestOpts.url = apiUrl;
+                        requestOpts.json = true;
+                        request(requestOpts, function (err, resp, body) {
                             if (err) {
                                 if (_this._internalOptions.verbose) {
                                     console.log('ERROR:', err);
@@ -265,7 +268,7 @@ var DeployAppPkg = (function () {
                                 reject("Failed to call the API URL: " + apiUrl);
                                 return;
                             }
-                            resolve(JSON.parse(body));
+                            resolve(body);
                         });
                     })];
             });
@@ -289,17 +292,19 @@ var DeployAppPkg = (function () {
             throw "Something wrong with the xmlBody";
         }
     };
-    DeployAppPkg.prototype._deployAppPkg = function (siteUrl, headers, xmlReqBody) {
+    DeployAppPkg.prototype._deployAppPkg = function (siteUrl, authData, xmlReqBody, sp2016) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
                 return [2, new Promise(function (resolve, reject) {
                         var apiUrl = siteUrl + "/_vti_bin/client.svc/ProcessQuery";
-                        headers["Content-type"] = "application/xml";
-                        request.post(apiUrl, {
-                            headers: headers,
-                            body: xmlReqBody
-                        }, function (err, resp, body) {
+                        authData.headers["Content-type"] = "application/xml";
+                        var requestOpts = authData.options;
+                        requestOpts.headers = authData.headers;
+                        requestOpts.url = apiUrl;
+                        requestOpts.json = true;
+                        requestOpts.body = xmlReqBody;
+                        request.post(requestOpts, function (err, resp, body) {
                             if (err) {
                                 if (_this._internalOptions.verbose) {
                                     console.log('ERROR:', err);
@@ -307,8 +312,13 @@ var DeployAppPkg = (function () {
                                 reject('Failed to deploy the app package file.');
                                 return;
                             }
-                            var result = JSON.parse(body);
-                            if (result && result[2].IsClientSideSolutionCurrentVersionDeployed) {
+                            if (sp2016 && body && body[2].IsClientSideSolutionDeployed) {
+                                if (_this._internalOptions.verbose) {
+                                    console.log('INFO: App package has been deployed to SP2016');
+                                }
+                                resolve(true);
+                            }
+                            else if (!sp2016 && body && body[2].IsClientSideSolutionCurrentVersionDeployed) {
                                 if (_this._internalOptions.verbose) {
                                     console.log('INFO: App package has been deployed');
                                 }
