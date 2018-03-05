@@ -191,7 +191,6 @@ class DeployAppPkg {
         return new Promise<string>((resolve, reject) => {
             request.get(apiUrl)
             .then(response => {
-                console.log(response.body.d);
                 resolve(response.body.d);
             })
             .catch(err =>{
@@ -252,7 +251,7 @@ class DeployAppPkg {
                     body: xmlReqBody,
                     headers: {
                         'X-RequestDigest': digest,
-                        'Content-type': "application/xml"
+                        'Content-Type': "application/xml"
                     }
                 });
             })
@@ -275,8 +274,8 @@ class DeployAppPkg {
                     }
                     reject('Failed to deploy the app package file.');
                 }
-            },
-            err => {
+            })
+            .catch(err => {
                 if (this._internalOptions.verbose) {
                     console.log('ERROR:', err);
                 }
