@@ -253,15 +253,16 @@ var DeployAppPkg = (function () {
                         request.requestDigest(siteUrl)
                             .then(function (digest) {
                             return request.post(apiUrl, {
-                                body: xmlReqBody,
                                 headers: {
                                     'X-RequestDigest': digest,
                                     'Content-Type': "application/xml"
-                                }
+                                },
+                                body: xmlReqBody,
+                                json: false
                             });
                         })
                             .then(function (response) {
-                            var body = response.body.d;
+                            var body = JSON.parse(response.body);
                             if (sp2016 && body && body[2].IsClientSideSolutionDeployed) {
                                 if (_this._internalOptions.verbose) {
                                     console.log('INFO: App package has been deployed to SP2016');
