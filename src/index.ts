@@ -1,6 +1,6 @@
 import { IOptions, IWebAndList, IFileInfo } from './utils/IDeployAppPkg';
 import * as spauth from 'node-sp-auth';
-import * as request from 'request';
+import * as sprequest from 'sp-request';
 import * as fs from 'fs';
 import * as url from 'url';
 import uuid4 from './helper/uuid4';
@@ -57,26 +57,17 @@ class DeployAppPkg {
                     };
 
                     // Authenticate against SharePoint
-                    const authData = await spauth.getAuth(siteUrl, credentials);
-
-                    // Append the accept and content-type to the header
-                    authData.headers["Accept"] = "application/json";
-                    authData.headers["Content-type"] = "application/json";
-
-                    // Get the site and web ID
-                    const digestValue = await this._getDigestValue(siteUrl, authData);
-                    // Add the digest value to the header
-                    authData.headers["X-RequestDigest"] = digestValue;
+                    let request = sprequest.create(credentials);
 
                     // Retrieve the site ID
-                    const siteId = await this._getSiteId(siteUrl, authData);
+                    const siteId = await this._getSiteId(siteUrl, request);
                     // Retrieve the web ID
-                    const webAndListInfo = await this._getWebAndListId(siteUrl, authData);
+                    const webAndListInfo = await this._getWebAndListId(siteUrl, request);
                     const webId = webAndListInfo.webId;
                     const listId = webAndListInfo.listId;
 
                     // Get the file information
-                    const fileInfo = await this._getFileInfo(siteUrl, authData);
+                    const fileInfo = await this._getFileInfo(siteUrl, request);
 
                     // Retrieve the request-body.xml file
                     let xmlReqBody = fs.readFileSync(__dirname + '/../request-body.xml', 'utf8');
@@ -88,7 +79,7 @@ class DeployAppPkg {
                     // Map all the required values to the XML body
                     xmlReqBody = this._setXMLMapping(xmlReqBody, siteId, webId, listId, fileInfo, this._internalOptions.skipFeatureDeployment);
                     // Post the request body to the processQuery endpoint
-                    await this._deployAppPkg(siteUrl, authData, xmlReqBody, this._internalOptions.sp2016);
+                    await this._deployAppPkg(siteUrl, request, xmlReqBody, this._internalOptions.sp2016);
 
                     if (this._internalOptions.verbose) {
                         console.log('INFO: COMPLETED');
@@ -105,52 +96,15 @@ class DeployAppPkg {
     }
 
     /**
-     * Retrieve the FormDigestValue for the current site
-     * @param siteUrl The current site URL to call
-     * @param headers The request headers
-     */
-    private async _getDigestValue(siteUrl: string, authData: any) {
-        return new Promise((resolve, reject) => {
-            const apiUrl = `${siteUrl}/_api/contextinfo?$select=FormDigestValue`;
-
-            let requestOpts = authData.options;
-            requestOpts.headers = authData.headers;
-            requestOpts.url = apiUrl;
-            requestOpts.json = true;
-            request.post(requestOpts, (err, resp, body) => {
-                if (err) {
-                    if (this._internalOptions.verbose) {
-                        console.log('ERROR:', err);
-                    }
-                    reject('Failed to retrieve the site and web ID');
-                    return;
-                }
-
-                if (body.FormDigestValue) {
-                    if (this._internalOptions.verbose) {
-                        console.log('INFO: FormDigestValue retrieved');
-                    }
-                    resolve(body.FormDigestValue);
-                } else {
-                    if (this._internalOptions.verbose) {
-                        console.log('ERROR:', body);
-                    }
-                    reject('The FormDigestValue could not be retrieved');
-                }
-            });
-        });
-    }
-
-    /**
      * Retrieve the site ID for the current URL
      * @param siteUrl The current site URL to call
-     * @param authData The request authData
+     * @param request The authenticated sp-request function
      */
-    private async _getSiteId(siteUrl: string, authData: any) {
+    private async _getSiteId(siteUrl: string, request: sprequest.ISPRequest) {
         return new Promise<string>((resolve, reject) => {
             const apiUrl = `${siteUrl}/_api/site?$select=Id`;
 
-            return this._getRequest(apiUrl, authData).then(result => {
+            return this._getRequest(apiUrl, request).then(result => {
                 if (typeof result.Id !== "undefined" && result.id !== null) {
                     if (this._internalOptions.verbose) {
                         console.log(`INFO: Site ID - ${result.Id}`);
@@ -169,16 +123,16 @@ class DeployAppPkg {
     /**
      * Retrieve the web ID for the current URL
      * @param siteUrl The current site URL to call
-     * @param authData The request authData
+     * @param authData The authenticated sp-request function
      */
-    private async _getWebAndListId(siteUrl: string, authData: any): Promise<IWebAndList> {
+    private async _getWebAndListId(siteUrl: string, request: sprequest.ISPRequest): Promise<IWebAndList> {
         return new Promise<IWebAndList>((resolve, reject) => {
             // Retrieve the relative site URL
             const relativeUrl: string = this._internalOptions.site === "" ? this._retrieveRelativeSiteUrl(siteUrl) : `/${this._internalOptions.site}`;
             // Create the API URL to call
             const apiUrl = `${siteUrl}/_api/web/getList('${relativeUrl}/appcatalog')?$select=Id,ParentWeb/Id&$expand=ParentWeb`;
 
-            return this._getRequest(apiUrl, authData).then(result => {
+            return this._getRequest(apiUrl, request).then(result => {
                 if (typeof result.Id !== "undefined" && result.id !== null &&
                     typeof result.ParentWeb !== "undefined" && result.ParentWeb !== null &&
                     typeof result.ParentWeb.Id !== "undefined" && result.ParentWeb.Id !== null) {
@@ -202,12 +156,12 @@ class DeployAppPkg {
     /**
      * Retrieve the file hidden version number and ID
      * @param siteUrl The current site URL to call
-     * @param authData The request authData
+     * @param request The authenticated sp-request function
      */
-    private async _getFileInfo(siteUrl: string, headers: any): Promise<IFileInfo> {
+    private async _getFileInfo(siteUrl: string, request: sprequest.ISPRequest): Promise<IFileInfo> {
         return new Promise<IFileInfo>((resolve, reject) => {
             const apiUrl = `${siteUrl}/_api/web/GetFolderByServerRelativeUrl('AppCatalog')/Files('${this._internalOptions.filename}')?$expand=ListItemAllFields&$select=ListItemAllFields/Id,ListItemAllFields/owshiddenversion`;
-            return this._getRequest(apiUrl, headers).then(result => {
+            return this._getRequest(apiUrl, request).then(result => {
                 if (typeof result.ListItemAllFields !== "undefined" && result.ListItemAllFields !== null &&
                     typeof result.ListItemAllFields.Id !== "undefined" && result.ListItemAllFields.Id !== null &&
                     typeof result.ListItemAllFields.owshiddenversion !== "undefined" && result.ListItemAllFields.owshiddenversion !== null) {
@@ -231,27 +185,20 @@ class DeployAppPkg {
     /**
      * Retrieve the file hidden version number and ID
      * @param siteUrl The current site URL to call
-     * @param authData The request authData
+     * @param request The authenticated sp-request function
      */
-    private async _getRequest(apiUrl: string, authData: any): Promise<any> {
-        return new Promise((resolve, reject) => {
-            
-            let requestOpts = authData.options;
-            requestOpts.headers = authData.headers;
-            requestOpts.url = apiUrl;
-            requestOpts.json = true;
-
-            request(requestOpts, (err, resp, body) => {
-                if (err) {
-                    if (this._internalOptions.verbose) {
-                        console.log('ERROR:', err);
-                    }
-                    reject(`Failed to call the API URL: ${apiUrl}`);
-                    return;
+    private async _getRequest(apiUrl: string, request: sprequest.ISPRequest): Promise<any> {           
+        return new Promise<string>((resolve, reject) => {
+            request.get(apiUrl)
+            .then(response => {
+                console.log(response.body.d);
+                resolve(response.body.d);
+            })
+            .catch(err =>{
+                if (this._internalOptions.verbose) {
+                    console.log('ERROR:', err);
                 }
-
-                // Parse the text to JSON
-                resolve(body);
+                reject(`Failed to call the API URL: ${apiUrl}`);
             });
         });
     }
@@ -293,28 +240,24 @@ class DeployAppPkg {
     /**
      * Deploy the app package file
      * @param siteUrl The URL of the app catalog site
-     * @param authData Request authData
+     * @param request The authenticated sp-request function
      */
-    private async _deployAppPkg(siteUrl: string, authData: any, xmlReqBody: string, sp2016: boolean) {
+    private async _deployAppPkg(siteUrl: string, request:sprequest.ISPRequest, xmlReqBody: string, sp2016: boolean) {
         return new Promise((resolve, reject) => {
             const apiUrl = `${siteUrl}/_vti_bin/client.svc/ProcessQuery`;
-            authData.headers["Content-type"] = "application/xml";
-
-            let requestOpts = authData.options;
-            requestOpts.headers = authData.headers;
-            requestOpts.url = apiUrl;
-            requestOpts.json = true;
-            requestOpts.body = xmlReqBody;
-
-            request.post(requestOpts, (err, resp, body) => {
-                if (err) {
-                    if (this._internalOptions.verbose) {
-                        console.log('ERROR:', err);
+            
+            request.requestDigest(siteUrl)
+            .then(digest => {
+                return request.post(apiUrl, {
+                    body: xmlReqBody,
+                    headers: {
+                        'X-RequestDigest': digest,
+                        'Content-type': "application/xml"
                     }
-                    reject('Failed to deploy the app package file.');
-                    return;
-                }
-
+                });
+            })
+            .then(response => {
+                let body = response.body.d;
                 // Check if the current version of the app package is deployed
                 if (sp2016 && body && body[2].IsClientSideSolutionDeployed) {
                     if (this._internalOptions.verbose) {
@@ -332,6 +275,13 @@ class DeployAppPkg {
                     }
                     reject('Failed to deploy the app package file.');
                 }
+            },
+            err => {
+                if (this._internalOptions.verbose) {
+                    console.log('ERROR:', err);
+                }
+                reject('Failed to deploy the app package file.');
+                return;
             });
         });
     }
