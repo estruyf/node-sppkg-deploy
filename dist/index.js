@@ -214,7 +214,6 @@ var DeployAppPkg = (function () {
                 return [2, new Promise(function (resolve, reject) {
                         request.get(apiUrl)
                             .then(function (response) {
-                            console.log(response.body.d);
                             resolve(response.body.d);
                         })
                             .catch(function (err) {
@@ -257,7 +256,7 @@ var DeployAppPkg = (function () {
                                 body: xmlReqBody,
                                 headers: {
                                     'X-RequestDigest': digest,
-                                    'Content-type': "application/xml"
+                                    'Content-Type': "application/xml"
                                 }
                             });
                         })
@@ -281,7 +280,8 @@ var DeployAppPkg = (function () {
                                 }
                                 reject('Failed to deploy the app package file.');
                             }
-                        }, function (err) {
+                        })
+                            .catch(function (err) {
                             if (_this._internalOptions.verbose) {
                                 console.log('ERROR:', err);
                             }

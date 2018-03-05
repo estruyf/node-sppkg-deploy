@@ -248,15 +248,16 @@ class DeployAppPkg {
             request.requestDigest(siteUrl)
             .then(digest => {
                 return request.post(apiUrl, {
-                    body: xmlReqBody,
                     headers: {
                         'X-RequestDigest': digest,
                         'Content-Type': "application/xml"
-                    }
+                    },
+                    body: xmlReqBody,
+                    json: false
                 });
             })
             .then(response => {
-                let body = response.body.d;
+                let body = JSON.parse(response.body);
                 // Check if the current version of the app package is deployed
                 if (sp2016 && body && body[2].IsClientSideSolutionDeployed) {
                     if (this._internalOptions.verbose) {
