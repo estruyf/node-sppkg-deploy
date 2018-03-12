@@ -1,8 +1,8 @@
 # Change Log
 
-## 1.1.3
+## 1.2.0
 - Added support for SharePoint 2016
-- New introduced property: sp2016
+- New introduced property: `sp2016`
 
 ## 1.1.2
 - Update: Always show the error message when an error occurs
