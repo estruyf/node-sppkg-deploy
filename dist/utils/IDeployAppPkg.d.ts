@@ -9,13 +9,11 @@ export interface IOptions {
     sp2016?: boolean;
     verbose?: boolean;
 }
-
 export interface IWebAndList {
     webId: string;
-    listId: string
+    listId: string;
 }
-
 export interface IFileInfo {
-    id: number,
-    version: number
+    id: number;
+    version: number;
 }
