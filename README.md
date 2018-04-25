@@ -118,7 +118,7 @@ Default: `false`
 
 Specify if this is SP2016 on-prem.
 
-### filename (optional)
+### verbose (optional)
 
 Type: `Boolean`
 Default: `false`
