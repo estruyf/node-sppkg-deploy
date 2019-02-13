@@ -1,5 +1,8 @@
 # Change Log
 
+## 1.1.3
+- Bug Fix: When error occurs throw an exception
+
 ## 1.1.2
 - Update: Always show the error message when an error occurs
 

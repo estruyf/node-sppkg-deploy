@@ -1,6 +1,6 @@
 {
   "name": "node-sppkg-deploy",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "This gulp plugin allows you to deploy SharePoint packages in the AppCatalog.",
   "main": "dist/index.js",
   "scripts": {
